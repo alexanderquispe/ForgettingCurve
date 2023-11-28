@@ -26,8 +26,8 @@ class HLR_model:
         
         try: 
         
-            h_hat = sum( self.theta[ index ] * row[ feature_name ] for index, feature_name in enumerate( self.feature_columns ) )
-            return np.clip( h_hat, min_hl, max_hl )
+            dp = sum( self.theta[ index ] * row[ feature_name ] for index, feature_name in enumerate( self.feature_columns ) )
+            return np.clip( 2**dp, min_hl, max_hl )
         
         except:
             
