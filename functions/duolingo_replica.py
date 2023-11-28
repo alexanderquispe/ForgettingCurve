@@ -11,9 +11,10 @@ max_hl = 274.
 class HLR_model:
     
     
-    def __init__( self, feature_columns, lrate = .001, alpha_ = .01, lambda_ = .1, sigma_ = 1. ):
+    def __init__( self, feature_columns, omit_h_term = False, lrate = .001, alpha_ = .01, lambda_ = .1, sigma_ = 1. ):
         
         self.feature_columns = feature_columns
+        self.omit_h_term     = omit_h_term
         self.theta           = defaultdict( float )
         self.fcounts         = defaultdict( int )
         self.lrate           = lrate
@@ -70,7 +71,11 @@ class HLR_model:
             rate                   = ( 1 /( 1 + p ) ) * self.lrate / np.sqrt( 1 + self.fcounts[ index ] )
             # rate                   = self.lrate / np.sqrt( 1 + self.fcounts[ index ] )
             self.theta[ index ]   -= rate * dlp_dw * feature_value
-            self.theta[ index ]   -= rate * self.alpha_ * dlh_dw * feature_value
+            
+            if not self.omit_h_term:
+                
+                self.theta[ index ] -= rate * self.alpha_ * dlh_dw * feature_value
+                
             self.theta[ index ]   -= rate * self.lambda_ * self.theta[ index ] / self.sigma_ ** 2
             self.fcounts[ index ] += 1
             
@@ -106,8 +111,8 @@ class HLR_model:
             
         mae_p      = mae( results[ 'p' ], results[ 'p_hat' ] )
         mae_h      = mae( results[ 'h' ], results[ 'h_hat' ] )
-        cor_p      = np.mean( spearman( results[ 'p' ], results[ 'p_hat' ] ) )
-        cor_h      = np.mean( spearman( results[ 'h' ], results[ 'h_hat' ] ) )
+        cor_p      = spearman( results[ 'p' ], results[ 'p_hat' ] )
+        cor_h      = spearman( results[ 'h' ], results[ 'h_hat' ] )
         total_slp  = sum( results[ 'slp' ] )
         total_slh  = sum( results[ 'slh' ] )
         total_l2   = sum( [ x ** 2 for x in self.theta.values() ] )
