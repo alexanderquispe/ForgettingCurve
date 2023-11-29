@@ -13,6 +13,7 @@ import os
 import random
 import sys
 from sys import intern
+import numpy as np
 
 from collections import defaultdict, namedtuple
 
@@ -54,7 +55,8 @@ class SpacedRepetitionModel(object):
         except:
             return MAX_HALF_LIFE
 
-    def predict(self, inst, base=2.):
+    def predict(self, inst, h_seed_, base=2.):
+
         if self.method == 'hlr':
             h = self.halflife(inst, base)
             p = 2. ** (-inst.t/h)
@@ -76,11 +78,11 @@ class SpacedRepetitionModel(object):
         elif self.method == 'lr':
             dp = sum([self.weights[k]*x_k for (k, x_k) in inst.fv])
             p = 1./(1+math.exp(-dp))
-            return pclip(p), random.random()
+            return pclip(p), h_seed_.random()
         else:
             raise Exception
 
-    def train_update(self, inst):
+    def train_update(self, inst, h_seed_ ):
         if self.method == 'hlr':
             base = 2.
             p, h = self.predict(inst, base)
@@ -101,7 +103,7 @@ class SpacedRepetitionModel(object):
         elif self.method == 'leitner' or self.method == 'pimsleur':
             pass
         elif self.method == 'lr':
-            p, _ = self.predict(inst)
+            p, _ = self.predict(inst, h_seed_ )
             err = p - inst.p
             for (k, x_k) in inst.fv:
                 # rate = (1./(1+inst.p)) * self.lrate   / math.sqrt(1 + self.fcounts[k])
@@ -113,23 +115,25 @@ class SpacedRepetitionModel(object):
                 # increment feature count for learning rate
                 self.fcounts[k] += 1
 
-    def train(self, trainset):
+    def train(self, trainset, h_seed = 2023 ):
         if self.method == 'leitner' or self.method == 'pimsleur':
             return
-        random.shuffle(trainset)
+        # random.shuffle(trainset)
+        h_seed_ = np.random.RandomState( h_seed )
         for inst in trainset:
-            self.train_update(inst)
+            self.train_update(inst, h_seed_ )
 
-    def losses(self, inst):
-        p, h = self.predict(inst)
+    def losses(self, inst, h_seed_ ):
+        p, h = self.predict(inst, h_seed_ )
         slp = (inst.p - p)**2
         slh = (inst.h - h)**2
         return slp, slh, p, h
 
-    def eval(self, testset, prefix=''):
+    def eval(self, testset, h_seed = 2023, prefix=''):
+        h_seed_ = np.random.RandomState( h_seed )
         results = {'p': [], 'h': [], 'pp': [], 'hh': [], 'slp': [], 'slh': []}
         for inst in testset:
-            slp, slh, p, h = self.losses(inst)
+            slp, slh, p, h = self.losses(inst, h_seed_ )
             results['p'].append(inst.p)     # ground truth
             results['h'].append(inst.h)
             results['pp'].append(p)         # predictions
