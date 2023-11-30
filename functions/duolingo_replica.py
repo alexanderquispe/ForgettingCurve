@@ -179,7 +179,20 @@ def read_data( df, omit_lexemes = False  ):
     df[ 'right' ]      = df[ 'right' ].apply( lambda x: np.sqrt( 1 + x ) )
     df[ 'wrong' ]      = df[ 'wrong' ].apply( lambda x: np.sqrt( 1 + x ) )
     df[ 'bias' ]       = 1
-                         
+    
+    # Seconds to date
+    df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
+    
+    # Function to convert time to decimal hours
+    def time_to_decimal(time):
+        return time.hour + time.minute / 60 + time.second / 3600
+
+    # Apply the function to the 'datetime' column
+    df['decimal_hours'] = df['datetime'].apply(lambda x: time_to_decimal(x))
+    
+    # create the year var
+    df['date_only'] = pd.to_datetime(df['datetime']).dt.date
+
     if not omit_lexemes:
     
         lexeme_dummies = pd.get_dummies( df[ 'lexeme' ], dtype = float )
@@ -190,7 +203,30 @@ def read_data( df, omit_lexemes = False  ):
                          
     else:
                          
-        feature_vars = [ 'right', 'wrong', 'bias' ]    
+        feature_vars = [ 'right', 'wrong', 'bias' ]
+    
+    # Assuming 'trainset' is your DataFrame and 'decimal_hours' is your column
+    # Convert decimal hours to categorical time of day
+
+    def categorize_time_of_day(hour):
+        if 5 <= hour < 12:
+            return 'morning'
+        elif 12 <= hour < 17:
+            return 'afternoon'
+        elif 17 <= hour < 21:
+            return 'evening'
+        else:
+            return 'night'
+
+    # Apply the function to your DataFrame
+    df['time_of_day'] = df['decimal_hours'].apply(categorize_time_of_day)
+
+    # Get dummy variables
+    time_of_day_dummies = pd.get_dummies(df['time_of_day'], prefix='time')
+
+    # Join the dummies back to the original DataFrame or use them separately as needed
+    df = df.join(time_of_day_dummies)
+
     
     splitpoint = int(0.9 * len(df))
     trainset   = df[ : splitpoint ]
