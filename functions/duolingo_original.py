@@ -93,6 +93,7 @@ class SpacedRepetitionModel(object):
                 # rate = self.lrate / math.sqrt(1 + self.fcounts[k])
                 # sl(p) update
                 self.weights[k] -= rate * dlp_dw * x_k
+                # print( self.weights )
                 # sl(h) update
                 if not self.omit_h_term:
                     self.weights[k] -= rate * self.hlwt * dlh_dw * x_k
